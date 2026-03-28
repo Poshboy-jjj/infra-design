@@ -1,4 +1,4 @@
-# Proxyサーバ詳細設計 (squid-server)
+# Ansibleサーバ詳細設計
 
 構成管理サーバ
 
