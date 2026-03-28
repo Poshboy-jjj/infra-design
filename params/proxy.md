@@ -1,37 +1,58 @@
 # Proxyサーバ詳細設計 (squid-server)
 
-Ansibleサーバおよび各コンポーネントがインターネットへ接続するためのゲートウェイ。
+各サーバがインターネットへ接続するためのProxyサーバ
 
-## 1. 基本情報
+## 基本情報
 | 項目 | 設定値 | 備考 |
 | :--- | :--- | :--- |
 | ホスト名 | proxy | |
-| OS | AlmaLinux 9 | |
-| IPアドレス | 192.168.66.124 | VLAN100 |
+| OS | AlmaLinux 9.6 | |
+| IPアドレス | 192.168.66.124 | VLAN66 |
 | プロキシポート | 8080 | |
 
-## 2. 管理アカウント
+## 管理アカウント
 | ユーザー名 | グループ | 役割 |
 | :--- | :--- | :--- |
 | root | - | システム管理（非推奨作業用） |
 | dadmin | wheel | **共通管理ユーザー** (sudo NOPASSWD設定) |
 
-## 3. ソフトウェア構成
+## ソフトウェア構成
 ### Squid (Proxy Service)
 - **バージョン**: dnf標準
 - **主な設定**:
-  - `http_access allow localnet` (192.168.66.0/24 からの接続を許可)
-  - `http_port 8080`
-  - SSL Bump: 未実装（現状は単純な転送のみ）
+  - http_port 8080  #(クライアント側が指定するHTTP Proxyポート)
+  - acl localnet src 192.168.0.0/16         # (受け付けるネットワーク)
+  - acl SSL_ports port 443
+  - acl Safe_ports port 80          # http
+  - acl Safe_ports port 443         # https
+  - cache_dir aufs /var/spool/squid 9000 16 256  #(キャッシュサイズ最大9000MB)
+ 
+## サーバ固有設定
+### SELinux
+無効 
+### Firewalld
+無効
+### パーティション構成
+| デバイス | サイズ | マウントポイント | ファイルシステム | 備考 |
+| :--- | :--- | :--- | :--- ||
+| /dev/sda1 | 600M | /boot/efi | vfat ||
+| /dev/sda2 | 1G | /boot | xfs ||
+| /dev/mapper/almalinux-root | 26.8G | / | xfs |sda3|
+| /dev/mapper/almalinux-swap | 1.6G | - | swap |sda3|
+| /dev/mapper/vg01-lv01 | 10G | /var/spool/squid | xfs |sdb1
 
-## 4. ネットワーク経路（外部接続用）
-GitHub等へのSSH通信を通すため、以下のポートとメソッドを許可。
-- **許可ポート**: 443 (HTTPS/SSH over HTTPS用)
-- **接続メソッド**: CONNECT (SSLトンネリング用)
 
-## 5. 関連ホスト設定（接続元）
-各サーバで以下の設定を投入済み、または投入予定。
+## 関連ホスト設定（接続元）
+各クライアント側の設定
 
 ### dnf プロキシ設定 (`/etc/dnf/dnf.conf`)
 ```ini
-proxy=[http://192.168.66.124:8080](http://192.168.66.124:8080)
+proxy=http://192.168.66.124:8080
+```
+
+### 環境変数 プロキシ設定(`/etc/profile.d/proxy.sh`)
+```ini
+export http_proxy=http://192.168.66.124:8080
+export https_proxy=http://192.168.66.124:8080
+export no_proxy=localhost,127.0.0.1,192.168.0.0/16
+```
