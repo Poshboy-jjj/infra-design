@@ -115,5 +115,3 @@ interface Loopback0.0
 interface Null0.0
   no ip address
 !
-<img width="771" height="2395" alt="image" src="https://github.com/user-attachments/assets/1564babe-aeb0-4f29-bd5a-7ed7c96f197a" />
-
