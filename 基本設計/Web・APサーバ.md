@@ -111,26 +111,27 @@
 * **L4 ロードバランサ（MetalLB）**: L2モード動作とし、VIPアドレスプール（`10.x.x.200-210`）から外部公開用IPを割り当てる。
 * **Ingress Controller**: ingress-nginx を使用し、外部からのHTTPS通信を単一窓口で受けて各Serviceへルーティングする。
 
-#### 6.1.4 ワークロード・リソース管理方針
-* **稼働コンテナ用途・分類**:
-  * **アプリケーション系**: 自作Web/APIサービス、ブログシステム（WordPress等）の実行
-  * **インフラ・プラットフォーム系**: Ingress-Nginx（トラフィック制御）、cert-manager（TLS証明書自動更新）
-  * **運用・監視系**: Node Exporter, Metrics Server（リソース監視）
-* **Namespace分離**: 用途・環境ごと（`kube-system`, `ingress-nginx`, `monitoring`, `prod-app`, `dev-app` 等）にNamespaceを明確に分離する。
-* **Pod冗長化・スケール方針**: アプリケーションPodは原則 Deployment（ReplicaSet: 2以上）で構成し、ノード障害時の自動再配置・可変性を確保する。
-* **リソース制限方針**: Podごとの リソース上限（Resource Request / Limit）を設定し、特定のPodによるノードリソースの枯渇を防ぐ。
+#### 6.1.4 ワークロード・リソース設計
+役割およびセキュリティレベルの異なるコンポーネントをNamespace単位で分離し、各ワークロードのリソース割当および冗長化方針を以下のように定義する。
+
+| Namespace | ワークロード名 | Kind | レプリカ数 | CPU Request / Limit | RAM Request / Limit | 備考・用途 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `kube-system` | `coredns` / `kube-proxy` | Deployment / DaemonSet | - | - / - | - / - | k8s標準コンポーネント |
+| `ingress-nginx` | `ingress-nginx-controller` | DaemonSet | - | 100m / 500m | 128Mi / 512Mi | 外部トラフィック受入・ルーティング |
+| `cert-manager` | `cert-manager` | Deployment | 1 | 50m / 100m | 64Mi / 128Mi | TLS証明書自動更新 |
+| `monitoring` | `node-exporter` | DaemonSet | - | 50m / 100m | 64Mi / 128Mi | 全ノードメトリクス収集 |
+| `prod-app` | `wordpress` | Deployment | 2 | 250m / 500m | 512Mi / 1Gi | Web/AP本体（本番用冗長構成） |
+| `prod-app` | `my-api-service` | Deployment | 2 | 200m / 400m | 256Mi / 512Mi | 自作APIサービス（本番用冗長構成） |
+| `dev-app` | テスト用Pod群 | Deployment | 1 | 100m / 200m | 128Mi / 256Mi | 開発・検証用環境 |
 
 #### 6.1.5 永続ストレージ設計（CSI / StorageClass）
-* **デフォルト StorageClass**: local-path-provisioner（ワーカーノードローカルディスク `/var/openebs` の活用）
+* **デフォルト StorageClass**: `local-path-provisioner`（ワーカーノードローカルディスク `/var/openebs` の活用）
 * **ステートフル・データ方針**: データベース（PostgreSQL/MySQL等）は本クラスタ外の「独立DB VM」へ外だし構成とし、k8s側は原則ステートレスなWeb/AP層に特化する。
 
 #### 6.1.6 運用アドオン・外部連携設計
 * **内部DNS**: CoreDNS
 * **証明書管理**: cert-manager（Let's Encrypt連携による証明書自動発行・更新）
 * **外部DB接続**: Pod内にDB接続情報（ユーザー名・パスワード・接続先ホスト）を直接保持せず、`Secret` / `ConfigMap` 経由で安全に注入する。
-
-#### 6.1.7 ワークロード・パラメータ管理
-* 本設計書（本文）には高レイヤーの「設計方針・ルール」のみを記述し、具体パラメータ（Namespace一覧、Deployment定義、コンテナイメージ名、Replica数、CPU/RAM割当値）は **「パラメータシート（ワークロード定義書）」** にて一元管理する。
 ---
 
 ## 7. 非機能要件に対する設計
