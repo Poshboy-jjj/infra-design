@@ -12,10 +12,10 @@ http://<Webサーバ名>/<ディレクトリ名>/<ファイル名>
 以下のケースを見てほしい
 1. http://www.lab.glasscom.com/dir/
 
-:::note info
-インフォメーション
-infoは省略可能です。
-:::
+:::note info  
+インフォメーション  
+infoは省略可能です。  
+:::  
 
 :::note warn
 警告
