@@ -11,18 +11,7 @@ http://<Webサーバ名>/<ディレクトリ名>/<ファイル名>
 
 以下のケースを見てほしい
 1. http://www.lab.glasscom.com/dir/
-
-:::note info  
-インフォメーション  
-infoは省略可能です。  
-:::  
-
-:::note warn
-警告
-○○に注意してください。
-:::
-
-:::note alert
-より強い警告
-○○しないでください。
-:::
+2. http://www.lab.glasscom.com/
+3. http://www.lab.glasscom.com
+4. http://www.lab.glasscom.com/whatisthis
+ケース1では
